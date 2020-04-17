@@ -77,4 +77,3 @@ func (s ServerError) String() string {
 func (s ServerError) Error() string {
 	return s.String()
 }
-

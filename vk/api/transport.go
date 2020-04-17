@@ -259,4 +259,3 @@ func defaultHTTPClient() HTTPClient {
 	}
 	return client
 }
-

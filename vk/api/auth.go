@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 	"net/http"
 	"net/url"
@@ -111,6 +112,7 @@ func Authenticate(api *APIClient, app Application) (token *AccessToken, err erro
 		auth.RawQuery = q.Encode()
 	}
 
+	fmt.Println(auth.String())
 	req, err := http.NewRequest(oAuthMethod, auth.String(), nil)
 	if err != nil {
 		return nil, err
@@ -131,6 +133,6 @@ func Authenticate(api *APIClient, app Application) (token *AccessToken, err erro
 		return nil, err
 	}
 
+	fmt.Println(token.AccessToken)
 	return token, err
 }
-

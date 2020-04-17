@@ -32,4 +32,3 @@ func ConcatInt64ToString(numbers ...int64) string {
 
 	return strings.Join(str, ",")
 }
-

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	defaultVersion = "5.67"
+	defaultVersion = "5.101"
 	defaultScheme  = "https"
 	defaultHost    = "api.vk.com"
 	defaultPath    = "method"

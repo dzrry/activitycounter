@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/dzrry/activitycounter/vk/api"
 	"log"
+	"net/url"
 )
 
 func main() {
@@ -17,6 +19,21 @@ func main() {
 	if err != nil {
 		log.Fatal("no user client")
 	}
-	fmt.Println(userClient)
 
+	values := make(url.Values)
+	values.Set("group_id", "190873620")
+	res, _ := userClient.Do(api.NewRequest("groups.getMembers", userClient.GetToken(), values))
+	fmt.Println(res.Response)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var members *api.GroupMembers
+	json.Unmarshal(res.Response, &members)
+	if err != nil {
+		log.Fatal("cannot unmarshal json")
+	}
+	for i := range members.Members {
+		fmt.Println(members.Members[i].UID)
+	}
 }
