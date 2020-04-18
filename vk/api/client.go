@@ -1,231 +1,127 @@
 package api
 
 import (
-	"github.com/pkg/errors"
-	"log"
+	"encoding/json"
+	"errors"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 )
 
-// Client allows you to transparently send requests to API server.
-type Client struct {
-	apiClient *APIClient
+const (
+	apiMethodURL = "https://api.vk.com/method/"
+	tokenURL     = "https://oauth.vk.com/token/"
+	apiVersion   = "5.103"
+)
+
+const (
+	DeviceAndroid = iota
+	DeviceApple
+)
+
+type VK struct {
+	Token  Token
+	Client *http.Client
 }
 
-// GetToken will return access_token
-func (client *Client) GetToken() string {
-	if client.apiClient == nil || client.apiClient.AccessToken == nil {
-		return ""
-	}
+func NewVK(device int, login, password string) (*VK, error) {
+	client := newBlankVK()
 
-	return client.apiClient.AccessToken.AccessToken
-}
-
-// SetLanguage sets the language in which different data will be returned,
-// for example, names of countries and cities.
-func (client *Client) SetLanguage(lang string) error {
-	if client.apiClient == nil {
-		return errors.New(ErrAPIClientNotFound)
-	}
-
-	client.apiClient.Language = lang
-	return nil
-}
-
-// SetLogger sets logger.
-func (client *Client) SetLogger(logger *log.Logger) error {
-	if client.apiClient == nil {
-		return errors.New(ErrAPIClientNotFound)
-	}
-
-	client.apiClient.SetLogger(logger)
-	return nil
-}
-
-// Log allow write log.
-func (client *Client) Log(flag bool) error {
-	if client.apiClient == nil {
-		return errors.New(ErrAPIClientNotFound)
-	}
-
-	client.apiClient.log = flag
-	return nil
-}
-
-// NewClientFromAPIClient creates a new *Client instance.
-func NewClientFromAPIClient(apiClient *APIClient) *Client {
-	return &Client{apiClient: apiClient}
-}
-
-// NewClientFromToken creates a new *Client instance.
-func NewClientFromToken(token string) *Client {
-	client := new(Client)
-	client.apiClient = NewAPIClient()
-	client.apiClient.SetAccessToken(token)
-	return client
-}
-
-// NewClientFromLogin creates a new *Client instance
-// and allows you to pass a authentication.
-func NewClientFromLogin(username string, password string, scope int64) (client *Client, err error) {
-	client = new(Client)
-	client.apiClient = NewAPIClient()
-	err = client.apiClient.Authenticate(NewApplication(username, password, scope))
+	token, err := client.auth(device, login, password)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("client 33 " + err.Error())
 	}
 
-	return
+	client.Token = token
+	return client, nil
 }
 
-// NewClientFromApplication creates a new *Client instance
-// and allows you to pass a custom application.
-func NewClientFromApplication(app Application) (client *Client, err error) {
-	client = new(Client)
-	client.apiClient = NewAPIClient()
-	err = client.apiClient.Authenticate(app)
-	if err != nil {
-		return nil, err
+func newBlankVK() *VK {
+	return &VK{
+		Client: &http.Client{},
 	}
-
-	return
 }
 
-// Do makes a request to a specific endpoint with our request
-// and returns response.
-func (client *Client) Do(request Request) (response *Response, err *Error) {
-	if client.apiClient == nil {
-		return nil, NewError(ErrBadCode, ErrAPIClientNotFound)
-	}
-
-	t := client.GetToken()
-	if request.Token == "" && t != "" {
-		request.Token = t
-	}
-
-	return client.apiClient.Do(request)
-}
-
-// Destination describes the final destination.
-type Destination struct {
-	UserID      int64    `json:"user_id"`
-	PeerID      int64    `json:"peer_id"`
-	Domain      string   `json:"domain"`
-	ChatID      int64    `json:"chat_id"`
-	GroupID     int64    `json:"group_id"`
-	GroupName   string   `json:"group_id"` // nolint: govet
-	GroupIDs    []int64  `json:"group_ids"`
-	GroupNames  []string `json:"group_ids"` // nolint: govet
-	UserIDs     []int64  `json:"user_ids"`
-	ScreenName  string   `json:"user_id"`  // nolint: govet
-	ScreenNames []string `json:"user_ids"` // nolint: govet
-}
-
-func (dst Destination) GetPeerID() int64 {
-	switch {
-	case dst.PeerID != 0:
-		return dst.PeerID
-	case dst.UserID != 0:
-		return dst.UserID
-	case dst.ChatID != 0:
-		return 2000000000 + dst.ChatID
-	case dst.GroupID != 0:
-		return -dst.GroupID
+func (client *VK) auth(device int, username, password string) (Token, error) {
+	var clientID, clientSecret string
+	switch device {
+	case DeviceAndroid:
+		clientID = "2274003"
+		clientSecret = "hHbZxrka2uZ6jB1inYsH"
+	case DeviceApple:
+		clientID = "3140623"
+		clientSecret = "VeWdmVclDCtn6ihuP1nt"
+	// Windows client
 	default:
-		return 0
-	}
-}
-
-func (dst Destination) Values() (values url.Values) {
-	values = url.Values{}
-
-	switch {
-	case dst.UserID != 0:
-		values.Add("user_id", strconv.FormatInt(dst.UserID, 10))
-	case dst.PeerID != 0:
-		values.Add("peer_id", strconv.FormatInt(dst.PeerID, 10))
-	case dst.Domain != "":
-		values.Add("domain", dst.Domain)
-	case dst.ChatID != 0:
-		values.Add("chat_id", strconv.FormatInt(dst.ChatID, 10))
-	case dst.GroupID != 0:
-		values.Add("group_id", strconv.FormatInt(dst.GroupID, 10))
-	case dst.GroupName != "":
-		values.Add("group_id", dst.GroupName)
-	case len(dst.GroupIDs) != 0:
-		values.Add("group_ids", ConcatInt64ToString(dst.GroupIDs...))
-	case len(dst.GroupNames) > 0:
-		values.Add("group_ids", strings.Join(dst.GroupNames, ","))
-	case len(dst.UserIDs) != 0:
-		values.Add("user_ids", ConcatInt64ToString(dst.UserIDs...))
-	case dst.ScreenName != "":
-		values.Add("user_id", dst.ScreenName)
-	case len(dst.ScreenNames) > 0:
-		values.Add("user_ids", strings.Join(dst.ScreenNames, ","))
+		clientID = "3697615"
+		clientSecret = "AlVXZFMUqyrnABp8ncuU"
 	}
 
-	return
-}
-
-// NewDstFromUserID creates a new MessageConfig instance from userID.
-func NewDstFromUserID(userIDs ...int64) (dst Destination) {
-	if len(userIDs) == 1 {
-		dst.UserID = userIDs[0]
-	} else {
-		dst.UserIDs = userIDs
+	req, err := http.NewRequest("GET", tokenURL, nil)
+	if err != nil {
+		return Token{}, err
 	}
-	return
-}
 
-// NewDstFromScreenName creates a new MessageConfig instance from screenNames.
-func NewDstFromScreenName(screenNames ...string) (dst Destination) {
-	if len(screenNames) == 1 {
-		dst.ScreenName = screenNames[0]
-	} else {
-		dst.ScreenNames = screenNames
+	q := req.URL.Query()
+	q.Add("grand_type", "password")
+	q.Add("client_id", clientID)
+	q.Add("client_secret", clientSecret)
+	q.Add("username", username)
+	q.Add("password", password)
+	q.Add("v", apiVersion)
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := client.Client.Do(req)
+	if err != nil {
+		return Token{}, errors.New("client 77 " + err.Error())
 	}
-	return
-}
+	defer resp.Body.Close()
 
-// NewDstFromGroupName creates a new MessageConfig instance from groupNames.
-func NewDstFromGroupName(groupNames ...string) (dst Destination) {
-	if len(groupNames) == 1 {
-		dst.GroupName = groupNames[0]
-	} else {
-		dst.GroupNames = groupNames
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return Token{}, errors.New("client 83 " + err.Error())
 	}
-	return
-}
 
-// NewDstFromPeerID creates a new MessageConfig instance from peerID.
-func NewDstFromPeerID(peerID int64) (dst Destination) {
-	dst.PeerID = peerID
-	return
-}
+	var token Token
+	json.Unmarshal(body, &token)
 
-// NewDstFromChatID creates a new MessageConfig instance from chatID.
-func NewDstFromChatID(chatID int64) (dst Destination) {
-	dst.ChatID = chatID
-	return
-}
-
-// NewDstFromGroupID creates a new MessageConfig instance from groupID.
-func NewDstFromGroupID(groupIDs ...int64) (dst Destination) {
-	if len(groupIDs) == 1 {
-		dst.GroupID = groupIDs[0]
-	} else {
-		dst.GroupIDs = groupIDs
+	if token.Error != "" {
+		return token, errors.New(token.Error + ": " + token.ErrorDescription)
 	}
-	return
+
+	return token, nil
 }
 
-// NewDstFromDomain creates a new MessageConfig instance from domain.
-func NewDstFromDomain(domain string) (dst Destination) {
-	dst.Domain = domain
-	return
+func (client *VK) MakeRequest(method string, params url.Values) (Response, error) {
+	if params == nil {
+		params = url.Values{}
+	}
+	params.Set("access_token", client.Token.AccessToken)
+	params.Set("v", apiVersion)
+
+	u := apiMethodURL + method
+
+	resp, err := client.Client.PostForm(u, params)
+	if err != nil {
+		return Response{}, errors.New("client 107 " + err.Error())
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return Response{}, errors.New("client 113 " + err.Error())
+	}
+
+	var response Response
+	json.Unmarshal(body, &response)
+
+	if response.ResponseError.ErrorCode != 0 {
+		return response, errors.New(
+			"Error code: " +
+				strconv.Itoa(response.ResponseError.ErrorCode) + ", " +
+				response.ResponseError.ErrorMsg)
+	}
+
+	return response, nil
 }
-
-
-
-

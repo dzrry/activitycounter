@@ -1,39 +1,31 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/dzrry/activitycounter/vk/api"
 	"log"
-	"net/url"
 )
+
+const groupId = 190873620
 
 func main() {
 	login := flag.String("login", "", "login string")
 	password := flag.String("password", "", "password string")
-	scope := int64(140488159)
+	//scope := int64(140488159)
 	flag.Parse()
 
-	userClient, err := api.NewClientFromLogin(*login, *password, scope)
-	if err != nil {
-		log.Fatal("no user client")
-	}
-
-	values := make(url.Values)
-	values.Set("group_id", "190873620")
-	res, _ := userClient.Do(api.NewRequest("groups.getMembers", userClient.GetToken(), values))
-	fmt.Println(res.Response)
+	userClient, err := api.NewVK(2, *login, *password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var members *api.GroupMembers
-	json.Unmarshal(res.Response, &members)
+	count, members, err := userClient.GroupGetMembers(groupId)
 	if err != nil {
-		log.Fatal("cannot unmarshal json")
+		log.Fatal(err)
 	}
-	for i := range members.Members {
-		fmt.Println(members.Members[i].UID)
+	fmt.Println(count)
+	for i := range members {
+		fmt.Println(&members[i].UID)
 	}
 }
