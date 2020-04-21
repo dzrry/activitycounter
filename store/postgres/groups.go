@@ -2,6 +2,7 @@ package postgres
 
 import (
 	vkapi "github.com/himidori/golang-vk-api"
+	"github.com/lib/pq"
 )
 
 func (db *DB) AllGroupMembers(groupId int) (int, []*vkapi.User, error) {
@@ -15,20 +16,17 @@ func (db *DB) AllGroupMembers(groupId int) (int, []*vkapi.User, error) {
 	return count, users, nil
 }
 
-func (db *DB) InsertGroupMembers(groupId, count int, users []*vkapi.User) (int64, error) {
+func (db *DB) InsertGroupMembers(groupId, count int, users []*vkapi.User) (error) {
 	userIds := make([]int, len(users), cap(users))
 	for i := range users {
 		userIds[i] = users[i].UID
 	}
-	res, err := db.Exec("INSERT INTO group_members (group_id, count, user_ids) VALUES ($1, $2, $3)",
-		groupId, count, userIds)
+	_, err := db.Exec("INSERT INTO group_members (group_id, count, user_ids) VALUES ($1, $2, $3)",
+		groupId, count, pq.Array(userIds))
 	if err != nil {
-		return 0, err
+		return err
 	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-	return id, err
+
+	return err
 }
 

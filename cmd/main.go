@@ -35,12 +35,9 @@ func main() {
 		log.Fatal(err)
 	}
 	env := &Env{db}
-	id, err := env.db.InsertGroupMembers(groupId, count, members)
-	if err != nil {
+	if err := env.db.InsertGroupMembers(groupId, count, members); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(id)
-
 }
 
 type Env struct {
