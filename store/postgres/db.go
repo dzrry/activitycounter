@@ -8,7 +8,7 @@ import (
 
 type Datastore interface {
 	AllGroupMembers(int) (int, []*vkapi.User, error)
-	InsertGroupMembers(int, int, []*vkapi.User) error
+	InsertGroupMembers(int, []*vkapi.User) error
 }
 
 type DB struct {

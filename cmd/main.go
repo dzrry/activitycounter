@@ -30,15 +30,15 @@ func main() {
 		fmt.Println(member.UID)
 	}
 
-	db, err := postgres.NewDB("user=postgres password=Val040674 dbname=activitycounter sslmode=disable")
+	db, err := postgres.NewDB("user=postgres password=postgres dbname=activitycounter sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
 	env := &Env{db}
-	/*if err := env.db.InsertGroupMembers(groupId, count, members); err != nil {
+	if err := env.db.InsertGroupMembers(groupId, members); err != nil {
 		log.Fatal(err)
-	}*/
-	countFromDb, membersFromDb, err := env.db.AllGroupMembers(groupId)
+	}
+	/*countFromDb, membersFromDb, err := env.db.AllGroupMembers(groupId)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,8 +46,8 @@ func main() {
 	fmt.Println(countFromDb)
 	for _, member := range membersFromDb {
 		fmt.Println(member.UID)
-	}
-	}
+	}*/
+}
 
 type Env struct {
 	db postgres.Datastore
