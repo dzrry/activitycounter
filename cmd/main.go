@@ -6,6 +6,7 @@ import (
 	"github.com/dzrry/activitycounter/store/postgres"
 	"github.com/himidori/golang-vk-api"
 	"log"
+	"time"
 )
 
 const groupId = 190873620
@@ -38,14 +39,18 @@ func main() {
 	/*if err := env.db.InsertGroupMembers(groupId, members); err != nil {
 		log.Fatal(err)
 	}*/
-	countFromDb, membersFromDb, err := env.db.AllGroupMembers(groupId)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(countFromDb)
-	for _, member := range membersFromDb {
-		fmt.Println(member.UID)
+	for {
+		go func() {
+			countFromDb, membersFromDb, err := env.db.AllGroupMembers(groupId)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(countFromDb)
+			for _, member := range membersFromDb {
+				fmt.Println(member.UID)
+			}
+		}()
+		time.Sleep(5 * time.Minute)
 	}
 }
 
