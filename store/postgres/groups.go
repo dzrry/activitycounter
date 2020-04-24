@@ -7,20 +7,24 @@ import (
 )
 
 func (db *DB) AllGroupMembers(groupId int) (int, []*vkapi.User, error) {
-	var count int
-	userIds := make([]uint8, 0)
-	row := db.QueryRow("SELECT count, user_ids FROM users_activities WHERE group_id = $1", groupId)
-	err := row.Scan(&count, &userIds)
+	rows, err := db.Query("SELECT user_id FROM users_activities WHERE group_id = $1", groupId)
 	if err != nil {
-		return 0, nil, err
+		return 0, []*vkapi.User{}, err
 	}
-	fmt.Println(len(userIds))
-	users := make([]*vkapi.User, 0)
-	for _, id := range userIds {
-		u := &vkapi.User{UID: int(id)}
+	defer rows.Close()
+	var users []*vkapi.User
+
+	for rows.Next() {
+		u := &vkapi.User{}
+		err := rows.Scan(&u.UID)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 		users = append(users, u)
 	}
-	return count, users, nil
+
+	return len(users), users, nil
 }
 
 func (db *DB) InsertGroupMembers(groupId int, users []*vkapi.User) error {
@@ -39,4 +43,3 @@ func (db *DB) InsertGroupMembers(groupId int, users []*vkapi.User) error {
 	}
 	return nil
 }
-

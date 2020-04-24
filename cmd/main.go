@@ -35,10 +35,10 @@ func main() {
 		log.Fatal(err)
 	}
 	env := &Env{db}
-	if err := env.db.InsertGroupMembers(groupId, members); err != nil {
+	/*if err := env.db.InsertGroupMembers(groupId, members); err != nil {
 		log.Fatal(err)
-	}
-	/*countFromDb, membersFromDb, err := env.db.AllGroupMembers(groupId)
+	}*/
+	countFromDb, membersFromDb, err := env.db.AllGroupMembers(groupId)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func main() {
 	fmt.Println(countFromDb)
 	for _, member := range membersFromDb {
 		fmt.Println(member.UID)
-	}*/
+	}
 }
 
 type Env struct {
