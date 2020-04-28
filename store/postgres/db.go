@@ -2,13 +2,13 @@ package postgres
 
 import (
 	"database/sql"
-	vkapi "github.com/himidori/golang-vk-api"
+	"github.com/dzrry/activitycounter/vk/api"
 	_ "github.com/lib/pq"
 )
 
 type Datastore interface {
-	AllGroupMembers(int) (int, []*vkapi.User, error)
-	InsertGroupMembers(int, []*vkapi.User) error
+	AllGroupMembers(int) (int, []*api.User, error)
+	InsertGroupMembers(int, []*api.User) error
 }
 
 type DB struct {

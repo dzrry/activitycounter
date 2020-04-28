@@ -2,20 +2,20 @@ package postgres
 
 import (
 	"fmt"
-	vkapi "github.com/himidori/golang-vk-api"
+	"github.com/dzrry/activitycounter/vk/api"
 	"time"
 )
 
-func (db *DB) AllGroupMembers(groupId int) (int, []*vkapi.User, error) {
+func (db *DB) AllGroupMembers(groupId int) (int, []*api.User, error) {
 	rows, err := db.Query("SELECT user_id FROM users_activities WHERE group_id = $1", groupId)
 	if err != nil {
-		return 0, []*vkapi.User{}, err
+		return 0, []*api.User{}, err
 	}
 	defer rows.Close()
-	var users []*vkapi.User
+	var users []*api.User
 
 	for rows.Next() {
-		u := &vkapi.User{}
+		u := &api.User{}
 		err := rows.Scan(&u.UID)
 		if err != nil {
 			fmt.Println(err)
@@ -27,7 +27,7 @@ func (db *DB) AllGroupMembers(groupId int) (int, []*vkapi.User, error) {
 	return len(users), users, nil
 }
 
-func (db *DB) InsertGroupMembers(groupId int, users []*vkapi.User) error {
+func (db *DB) InsertGroupMembers(groupId int, users []*api.User) error {
 	dt := time.Now().Format("01-02-2006 15:04:05")
 	stmt, err := db.Prepare(
 		"INSERT INTO users_activities (user_id, group_id, event, date) VALUES ($1, $2, 'subscribe', $3)")
