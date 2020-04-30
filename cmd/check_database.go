@@ -1,25 +1,14 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"github.com/dzrry/activitycounter/store/postgres"
-	 "github.com/dzrry/activitycounter/vk/api"
+	"github.com/dzrry/activitycounter/vk/api"
 	"log"
 	"time"
 )
 
-func check() {
-	login := flag.String("login", "", "login string")
-	password := flag.String("password", "", "password string")
-	//scope := int64(140488159)
-	flag.Parse()
-
-	client, err := api.NewVKClient(3, *login, *password)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func check(client *api.VKClient) {
 	count, members, err := client.GroupGetMembers(groupId, 1000, 0)
 	if err != nil {
 		log.Fatal(err)

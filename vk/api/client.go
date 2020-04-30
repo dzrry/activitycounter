@@ -29,7 +29,7 @@ type ratelimiter struct {
 }
 
 type VKClient struct {
-	Self   Token
+	Token  Token
 	Client *http.Client
 	rl     *ratelimiter
 	cb     *callbackHandler
@@ -64,14 +64,14 @@ func NewVKClient(device int, user string, password string) (*VKClient, error) {
 		return nil, err
 	}
 
-	vkclient.Self = token
+	vkclient.Token = token
 
 	return vkclient, nil
 }
 
 func NewVKClientWithToken(token string, options *TokenOptions) (*VKClient, error) {
 	vkclient := newVKClientBlank()
-	vkclient.Self.AccessToken = token
+	vkclient.Token.AccessToken = token
 
 	if options != nil {
 		if options.ValidateOnStart {
@@ -79,7 +79,7 @@ func NewVKClientWithToken(token string, options *TokenOptions) (*VKClient, error
 			if err != nil {
 				return nil, err
 			}
-			vkclient.Self.UID = uid
+			vkclient.Token.UID = uid
 
 			if !options.ServiceToken {
 				if err := vkclient.updateSelfUser(); err != nil {
@@ -116,16 +116,16 @@ func NewVKGroupBot(token string, options *TokenOptions) (*VKGroupBot, error) {
 }
 
 func (client *VKClient) updateSelfUser() error {
-	me, err := client.UsersGet([]int{client.Self.UID})
+	me, err := client.UsersGet([]int{client.Token.UID})
 	if err != nil {
 		return err
 	}
 
-	client.Self.FirstName = me[0].FirstName
-	client.Self.LastName = me[0].LastName
-	client.Self.PicSmall = me[0].Photo
-	client.Self.PicMedium = me[0].PhotoMedium
-	client.Self.PicBig = me[0].PhotoBig
+	client.Token.FirstName = me[0].FirstName
+	client.Token.LastName = me[0].LastName
+	client.Token.PicSmall = me[0].Photo
+	client.Token.PicMedium = me[0].PhotoMedium
+	client.Token.PicBig = me[0].PhotoBig
 
 	return nil
 }
@@ -241,7 +241,7 @@ func (client *VKClient) MakeRequest(method string, params url.Values) (APIRespon
 		params = url.Values{}
 	}
 
-	params.Set("access_token", client.Self.AccessToken)
+	params.Set("access_token", client.Token.AccessToken)
 	params.Set("v", apiVersion)
 
 	resp, err := client.Client.PostForm(endpoint, params)
@@ -264,4 +264,23 @@ func (client *VKClient) MakeRequest(method string, params url.Values) (APIRespon
 		return apiresp, errors.New("Error code: " + strconv.Itoa(apiresp.ResponseError.ErrorCode) + ", " + apiresp.ResponseError.ErrorMsg)
 	}
 	return apiresp, nil
+}
+
+func (client *VKClient) Execute(code string) (map[string]interface{}, error) {
+	token := client.Token.AccessToken
+	params := url.Values{}
+	params.Set("code", code)
+	params.Set("access_token", token)
+	params.Set("v", apiVersion)
+
+	resp, err := client.MakeRequest("execute", params)
+	if err != nil {
+		return nil, errors.New("client 278 " + err.Error())
+	}
+
+	response := make(map[string]interface{})
+	if err := json.Unmarshal(resp.Response, &response); err != nil {
+		return response, errors.New("client 283" + err.Error())
+	}
+	return response, nil
 }
