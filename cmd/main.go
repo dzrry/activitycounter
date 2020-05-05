@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/dzrry/activitycounter/vk/api"
 	"log"
-	"strings"
 )
 
 const groupId = 190873620
@@ -16,51 +15,52 @@ func main() {
 
 	tmpl := `
 var groupId = %d;
-var items = [%s];
 var countByRequest = %d;
-var hasNext = true;
+var hasNext = %t;
 var offset = %d;
 var calls = 0;
 
-while ((items.length > 0 || hasNext) && calls < 25) {
-	if (items.length == 0 && hasNext) {
-		var members = API.groups.getMembers({"group_id":groupId,"count":countByRequest,"offset":offset});
+var items = [];
+while (hasNext && calls < 25) {
+	calls = calls + 1;
+	var members = API.groups.getMembers({"group_id":groupId,"count":countByRequest,"offset":offset});
+	items = members.items;
 
-		calls = calls + 1;
-		offset = offset + 1;
-		if (offset >= members.count) {
-			hasNext = false;
-		}
-		items = members.items;
+	offset = offset + countByRequest;
+	if (offset >= members.count) {
+		hasNext = false;
 	}
+	
 }
 return {"items":items,"has_next":hasNext,"offset":offset};`
 
 	offset := 0
-	var items []string
+	countByRequest := 1000
+	hasNext := true
 
 	for {
-		code := fmt.Sprintf(tmpl, rbkId, strings.Join(items, ","), 1000, offset)
+		code := fmt.Sprintf(tmpl, rbkId, countByRequest, hasNext, offset)
 		resp, err := client.Execute(code)
 		if err != nil {
 			log.Fatal(err)
 		}
 
+		hasNext = resp["has_next"].(bool)
 		offset = int(resp["offset"].(float64))
+		fmt.Println(offset)
 		respItems := resp["items"].([]interface{})
-		if len(respItems) == 0 {
+		if len(respItems) == 0 && !hasNext {
 			break
 		}
 
-		items = make([]string, 0, len(respItems))
 		for _, item := range respItems {
 			fmt.Println(item)
-			items = append(items, fmt.Sprintf("%f", item.(float64)))
 		}
 	}
+
 }
 
-func createUserVk() (client *api.VKClient){
+func createUserVk() (client *api.VKClient) {
 	login := flag.String("login", "", "login string")
 	password := flag.String("password", "", "password string")
 	flag.Parse()
