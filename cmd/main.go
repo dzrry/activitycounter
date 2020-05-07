@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/dzrry/activitycounter/insta"
 	"github.com/dzrry/activitycounter/vk/api"
 	"log"
@@ -18,19 +17,7 @@ func main() {
 	}
 	defer inst.Logout()
 
-	users, err := inst.Profiles.ByName("nina.shahova")
-	if err != nil {
-		log.Fatal("main 21 " + err.Error())
-	}
-	followers := users.Followers()
-	followersCount := 0
-	for followers.Next() {
-		followersCount++
-		for _, user := range followers.Users {
-			fmt.Print(user.Username + "  ")
-		}
-	}
-	fmt.Println(followersCount)
+	likesCount(inst)
 }
 
 func createUserVk() (client *api.VKClient) {
@@ -50,7 +37,6 @@ func createInsta() (inst *insta.Instagram) {
 	password := flag.String("password", "", "password string")
 	flag.Parse()
 
-	fmt.Print(*login + "  " + *password)
 	inst = insta.New(*login, *password)
 	return
 }
