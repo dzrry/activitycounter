@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func check(client *api.VKClient) {
+func checkDB(client *api.VKClient) {
 	count, members, err := client.GroupGetMembers(groupId, 1000, 0)
 	if err != nil {
 		log.Fatal(err)

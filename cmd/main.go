@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/dzrry/activitycounter/insta"
 	"github.com/dzrry/activitycounter/vk/api"
 	"log"
 )
@@ -11,53 +12,25 @@ const groupId = 190873620
 const rbkId = 25232578
 
 func main() {
-	client := createUserVk()
-
-	tmpl := `
-var groupId = %d;
-var countByRequest = %d;
-var hasNext = %t;
-var offset = %d;
-var calls = 0;
-
-var items = [];
-while (hasNext && calls < 25) {
-	calls = calls + 1;
-	var members = API.groups.getMembers({"group_id":groupId,"count":countByRequest,"offset":offset});
-	items = members.items;
-
-	offset = offset + countByRequest;
-	if (offset >= members.count) {
-		hasNext = false;
+	inst := createInsta()
+	if err := inst.Login(); err != nil {
+		log.Fatal("main 17 " + err.Error())
 	}
-	
-}
-return {"items":items,"has_next":hasNext,"offset":offset};`
+	defer inst.Logout()
 
-	offset := 0
-	countByRequest := 1000
-	hasNext := true
-
-	for {
-		code := fmt.Sprintf(tmpl, rbkId, countByRequest, hasNext, offset)
-		resp, err := client.Execute(code)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		hasNext = resp["has_next"].(bool)
-		offset = int(resp["offset"].(float64))
-		fmt.Println(offset)
-		respItems := resp["items"].([]interface{})
-		if len(respItems) == 0 && !hasNext {
-			break
-		}
-
-		for _, item := range respItems {
-			fmt.Println(item)
+	users, err := inst.Profiles.ByName("nina.shahova")
+	if err != nil {
+		log.Fatal("main 21 " + err.Error())
+	}
+	followers := users.Followers()
+	followersCount := 0
+	for followers.Next() {
+		followersCount++
+		for _, user := range followers.Users {
+			fmt.Print(user.Username + "  ")
 		}
 	}
-
+	fmt.Println(followersCount)
 }
 
 func createUserVk() (client *api.VKClient) {
@@ -69,5 +42,15 @@ func createUserVk() (client *api.VKClient) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	return
+}
+
+func createInsta() (inst *insta.Instagram) {
+	login := flag.String("login", "", "login string")
+	password := flag.String("password", "", "password string")
+	flag.Parse()
+
+	fmt.Print(*login + "  " + *password)
+	inst = insta.New(*login, *password)
 	return
 }
