@@ -17,7 +17,7 @@ func main() {
 	}
 	defer inst.Logout()
 
-	likesCount(inst)
+	likersNames(inst)
 }
 
 func createUserVk() (client *api.VKClient) {
